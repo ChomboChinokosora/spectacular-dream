@@ -2,9 +2,18 @@ import React, {useRef, useEffect} from "react"
 import {gsap} from "gsap"
 
 
-const Loading = () => {
+const Landing = () => {
   const mainRef = useRef();
   const lightCyanSlider = useRef();
+  const [showStartButton, setShowStartButton] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowStartButton(true);
+    }, 7000); // Show start button after 3 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
 
   
 
@@ -129,3 +138,5 @@ const Loading = () => {
 
     )
 }
+
+export default Landing

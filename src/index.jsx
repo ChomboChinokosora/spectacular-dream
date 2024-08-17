@@ -3,7 +3,7 @@ import './styles.css'
 import App from './App'
 import { Logo } from '@pmndrs/branding'
 
-function Logo() {
+function Overlay() {
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
            <svg className="logo" version="1.2" height="300" width="600" xmlns="http://www.w3.org/2000/svg"
@@ -36,6 +36,5 @@ createRoot(document.getElementById('root')).render(
   <>
     <App />
     <Overlay />
-    <Logo style={{ position: 'absolute', bottom: 40, left: 40, width: 30 }} />
   </>
 )

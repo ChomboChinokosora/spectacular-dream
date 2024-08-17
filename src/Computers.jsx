@@ -1,9 +1,8 @@
 import * as THREE from 'three'
 import { useMemo, useContext, createContext, useEffect, useRef, useState } from 'react'
-import { useFrame , useThre} from '@react-three/fiber'
+import { useFrame , useThree} from '@react-three/fiber'
 import { useGLTF, Merged, RenderTexture, PerspectiveCamera, Text } from '@react-three/drei'
 import { gsap } from 'gsap';
-import { SpinningBox } from './SpinningBox'
 import { Heart } from './Heart';
 THREE.ColorManagement.legacyMode = false
 
@@ -56,24 +55,69 @@ export function Instances({ children, ...props }) {
   )
 }
 
-export function Computers({audioData, ...props}) {
-  const { nodes: n, materials: m } = useGLTF('/computers_1-transformed.glb')
-  const instances = useContext(context)
+export function Computers({audioUrl, ...props}) {
+  const group = useRef();
+  const { nodes, materials } = useGLTF('/computers_1-transformed.glb');
+  const instances = useContext(context);
+  const [trigger, setTrigger] = useState(false);
+  const targetMap = useRef(new Map());
+  const explosionCenter = new THREE.Vector3(0, 0, 0);
+  const explosionFactor = 0.8;
+  const [audioData, setAudioData] = useState(new Uint8Array(128));
+  const { audio, analyzer } = useMemo(() => createAudioAnalyzer(audioUrl), [audioUrl]);
 
-  const groupRef = useRef()
+  useEffect(() => {
+    audio.play();
+    return () => audio.pause();
+  }, [audio]);
 
   useFrame(() => {
-    if (audioData && groupRef.current) {
-      const averageFrequency = audioData.reduce((sum, value) => sum + value, 0) / audioData.length
-      const normalizedFrequency = averageFrequency / 255
+    analyzer.getByteFrequencyData(audioData);
+    setAudioData(new Uint8Array(audioData));
+  });
+
+  // Initialize explosion targets
+  useEffect(() => {
+    group.current.traverse((object) => {
+      if (object.isMesh) {
+        const vector = object.position.clone().sub(explosionCenter).normalize();
+        const displacement = object.position
+          .clone()
+          .add(
+            vector.multiplyScalar(
+              object.position.distanceTo(explosionCenter) * explosionFactor
+            )
+          );
+        targetMap.current.set(object.name, displacement);
+      }
+    });
+    setTrigger(true);
+  }, []);
+
+  // Animate explosion based on audio data
+  useFrame(() => {
+    if (audioData && trigger) {
+      const averageFrequency = audioData.reduce((sum, value) => sum + value, 0) / audioData.length;
+      const normalizedFrequency = averageFrequency / 255;
       
-      groupRef.current.scale.set(
-        1 + normalizedFrequency * 0.1,
-        1 + normalizedFrequency * 0.1,
-        1 + normalizedFrequency * 0.1
-      )
+      group.current.traverse((object) => {
+        if (object.isMesh) {
+          const targetPosition = targetMap.current.get(object.name);
+          if (targetPosition) {
+            const newPosition = object.position.clone().lerp(targetPosition, normalizedFrequency);
+            gsap.to(object.position, {
+              x: newPosition.x,
+              y: newPosition.y,
+              z: newPosition.z,
+              duration: 0.1,
+              ease: 'power2.out',
+            });
+          }
+        }
+      });
     }
-  })
+  });
+
   return (
     <group {...props} dispose={null}>
       <instances.Object position={[0.16, 0.79, -1.97]} rotation={[-0.54, 0.93, -1.12]} scale={0.5} />
