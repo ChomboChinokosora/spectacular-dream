@@ -1,11 +1,34 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
+import * as THREE from 'three';
 
-export function SunEarthMoon({audioData, ...props}) {
+function createAudioAnalyzer(audioUrl) {
+    const audio = new Audio(audioUrl);
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const source = context.createMediaElementSource(audio);
+    const analyzer = context.createAnalyser();
+    source.connect(analyzer);
+    analyzer.connect(context.destination);
+    return { audio, analyzer };
+  }
+
+export function SunEarthMoon({audioUrl, ...props}) {
   const group = useRef()
   const { nodes, materials, animations } = useGLTF('/sun_earth_moon.glb')
   const { actions } = useAnimations(animations, group)
+  const [audioData, setAudioData] = useState(new Uint8Array(128));
+  const { audio, analyzer } = useMemo(() => createAudioAnalyzer(audioUrl), [audioUrl]);
+
+  useEffect(() => {
+    audio.play();
+    return () => audio.pause();
+  }, [audio]);
+
+  useFrame(() => {
+    analyzer.getByteFrequencyData(audioData);
+    setAudioData(new Uint8Array(audioData));
+  });
 
 
   useEffect(() => {

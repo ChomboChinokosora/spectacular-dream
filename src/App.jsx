@@ -4,8 +4,8 @@ import { EffectComposer, Bloom, DepthOfField, ToneMapping } from '@react-three/p
 import { easing } from 'maath'
 import { suspend } from 'suspend-react'
 import { Instances, Computers } from './Computers'
+import { SunEarthMoon } from './SunEarthMoon'
 
-const suzi = import('@pmndrs/assets/models/bunny.glb')
 
 export default function App() {
   return (
@@ -37,7 +37,7 @@ export default function App() {
           />
         </mesh>
         {/* Bunny and a light give it more realism */}
-        <Bun scale={0.4} position={[0, 0.3, 0.5]} rotation={[0, -Math.PI * 0.85, 0]} />
+        <SunEarthMoon scale={0.4} position={[0, 0.3, 0.5]} rotation={[0, -Math.PI * 0.85, 0]} audioUrl={"/Gydra-ObserverEffect.mp3"}/>
         <pointLight distance={1.5} intensity={1} position={[-0.15, 0.7, 0]} color="orange" />
       </group>
       {/* Postprocessing */}

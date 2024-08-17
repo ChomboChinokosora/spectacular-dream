@@ -4,6 +4,7 @@ import { useFrame , useThre} from '@react-three/fiber'
 import { useGLTF, Merged, RenderTexture, PerspectiveCamera, Text } from '@react-three/drei'
 import { gsap } from 'gsap';
 import { SpinningBox } from './SpinningBox'
+import { Heart } from './Heart';
 THREE.ColorManagement.legacyMode = false
 
 /*
@@ -15,6 +16,16 @@ License: CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 Source: https://sketchfab.com/3d-models/old-computers-7bb6e720499a467b8e0427451d180063
 Title: Old Computers
 */
+
+function createAudioAnalyzer(audioUrl) {
+  const audio = new Audio(audioUrl);
+  const context = new (window.AudioContext || window.webkitAudioContext)();
+  const source = context.createMediaElementSource(audio);
+  const analyzer = context.createAnalyser();
+  source.connect(analyzer);
+  analyzer.connect(context.destination);
+  return { audio, analyzer };
+}
 
 const context = createContext()
 export function Instances({ children, ...props }) {
@@ -166,17 +177,41 @@ export function Computers({audioData, ...props}) {
       <instances.Object36 position={[-5.25, 4.29, -1.47]} rotation={[0, 1.25, 0]} />
       <mesh castShadow receiveShadow geometry={n.Object_204.geometry} material={m.Texture} position={[3.2, 4.29, -3.09]} rotation={[-Math.PI, 0.56, 0]} scale={-1} />
       <ScreenInteractive frame="Object_206" panel="Object_207" position={[0.27, 1.53, -2.61]} />
-      <ScreenText frame="Object_209" panel="Object_210" y={5} position={[-1.43, 2.5, -1.8]} rotation={[0, 1, 0]} />
-      <ScreenText invert frame="Object_212" panel="Object_213" x={-5} y={5} position={[-2.73, 0.63, -0.52]} rotation={[0, 1.09, 0]} />
-      <ScreenText invert frame="Object_215" panel="Object_216" position={[1.84, 0.38, -1.77]} rotation={[0, -Math.PI / 9, 0]} />
-      <ScreenText invert frame="Object_218" panel="Object_219" x={-5} position={[3.11, 2.15, -0.18]} rotation={[0, -0.79, 0]} scale={0.81} />
-      <ScreenText frame="Object_221" panel="Object_222" y={5} position={[-3.42, 3.06, 1.3]} rotation={[0, 1.22, 0]} scale={0.9} />
-      <ScreenText invert frame="Object_224" panel="Object_225" position={[-3.9, 4.29, -2.64]} rotation={[0, 0.54, 0]} />
-      <ScreenText frame="Object_227" panel="Object_228" position={[0.96, 4.28, -4.2]} rotation={[0, -0.65, 0]} />
-      <ScreenText frame="Object_230" panel="Object_231" position={[4.68, 4.29, -1.56]} rotation={[0, -Math.PI / 3, 0]} />
-      <Leds instances={instances} />
+      <VideoScreen frame="Object_209" panel="Object_210" y={5} position={[-1.43, 2.5, -1.8]} rotation={[0, 1, 0]} videoUrl={"/cat.mp4"} />
+      <ScreenText invert frame="Object_212" panel="Object_213" x={-5} y={5} position={[-2.73, 0.63, -0.52]} rotation={[0, 1.09, 0]} audioUrl={"/Gydra-ObserverEffect.mp3"}/>
+      <ScreenText invert frame="Object_215" panel="Object_216" position={[1.84, 0.38, -1.77]} rotation={[0, -Math.PI / 9, 0]} audioUrl={"/Gydra-ObserverEffect.mp3"} />
+      <VideoScreen invert frame="Object_218" panel="Object_219" x={-5} position={[3.11, 2.15, -0.18]} rotation={[0, -0.79, 0]} scale={0.81} videoUrl={"/chigure.mp4"}/>
+      <ScreenText frame="Object_221" panel="Object_222" y={5} position={[-3.42, 3.06, 1.3]} rotation={[0, 1.22, 0]} scale={0.9} audioUrl={"/Gydra-ObserverEffect.mp3"}/>
+      <VideoScreen invert frame="Object_224" panel="Object_225" position={[-3.9, 4.29, -2.64]} rotation={[0, 0.54, 0]} videoUrl={"/chigure.mp4"}/>
+      <ScreenText frame="Object_227" panel="Object_228" position={[0.96, 4.28, -4.2]} rotation={[0, -0.65, 0]} audioUrl={"/Gydra-ObserverEffect.mp3"}/>
+      <ScreenText frame="Object_230" panel="Object_231" position={[4.68, 4.29, -1.56]} rotation={[0, -Math.PI / 3, 0]} audioUrl={"/Gydra-ObserverEffect.mp3"}/>
+      <Leds instances={instances} audioUrl={"/Gydra-ObserverEffect.mp3"}/>
     </group>
   )
+}
+
+function VideoScreen({ videoUrl,frame, panel, children, ...props }) {
+  const { nodes, materials } = useGLTF('/computers_1-transformed.glb');
+  const [video] = useState(() => {
+    const vid = document.createElement('video');
+    vid.src = videoUrl;
+    vid.crossOrigin = 'Anonymous';
+    vid.loop = true;
+    vid.muted = true;
+    vid.play();
+    return vid;
+  });
+
+  return (
+    <group {...props}>
+      <mesh geometry={nodes[frame].geometry} material={materials.Texture} />
+      <mesh geometry={nodes[panel].geometry}>
+        <meshBasicMaterial toneMapped={false}>
+          <videoTexture attach="map" args={[video]} />
+        </meshBasicMaterial>
+      </mesh>
+    </group>
+  );
 }
 
 /* This component renders a monitor (taken out of the gltf model)
@@ -198,10 +233,27 @@ function Screen({ frame, panel, children, ...props }) {
 }
 
 /* Renders a monitor with some text */
-function ScreenText({ invert, x = 0, y = 1.2, ...props }) {
+function ScreenText({ audioUrl, invert, x = 0, y = 1.2, ...props }) {
   const textRef = useRef()
-  const rand = Math.random() * 10000
-  useFrame((state) => (textRef.current.position.x = x + Math.sin(rand + state.clock.elapsedTime / 4) * 8))
+  const [audioData, setAudioData] = useState(new Uint8Array(128));
+  const { audio, analyzer } = useMemo(() => createAudioAnalyzer(audioUrl), [audioUrl]);
+
+  useEffect(() => {
+    audio.play();
+    return () => audio.pause();
+  }, [audio]);
+
+  useFrame(() => {
+    analyzer.getByteFrequencyData(audioData);
+    setAudioData(new Uint8Array(audioData));
+  });
+  useFrame(() => {
+    if (audioData && textRef.current) {
+      const averageFrequency = audioData.reduce((sum, value) => sum + value, 0) / audioData.length
+      const normalizedFrequency = averageFrequency / 255
+      textRef.current.position.y = Math.sin(normalizedFrequency * Math.PI * 2) * 0.5
+    }
+  })
   return (
     <Screen {...props}>
       <PerspectiveCamera makeDefault manual aspect={1 / 1} position={[0, 0, 15]} />
@@ -209,7 +261,7 @@ function ScreenText({ invert, x = 0, y = 1.2, ...props }) {
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} />
       <Text font="/Inter-Medium.woff" position={[x, y, 0]} ref={textRef} fontSize={4} letterSpacing={-0.1} color={!invert ? 'black' : '#35c19f'}>
-        Poimandres.
+        FULLSCREEN.
       </Text>
     </Screen>
   )
@@ -224,26 +276,37 @@ function ScreenInteractive(props) {
       <ambientLight intensity={Math.PI / 2} />
       <pointLight decay={0} position={[10, 10, 10]} intensity={Math.PI} />
       <pointLight decay={0} position={[-10, -10, -10]} />
-      <SpinningBox position={[-3.15, 0.75, 0]} scale={0.5} />
+      <Heart position={[-3.15, 0.75, 0]} scale={0.5} audioUrl={"/Gydra-ObserverEffect.mp3"}  />
     </Screen>
   )
 }
 
 // Renders flashing LED's
-function Leds({ instances }) {
+function Leds({ audioUrl, instances }) {
   const ref = useRef()
+  const [audioData, setAudioData] = useState(new Uint8Array(128));
+  const { audio, analyzer } = useMemo(() => createAudioAnalyzer(audioUrl), [audioUrl]);
+
+  useEffect(() => {
+    audio.play();
+    return () => audio.pause();
+  }, [audio]);
+
+  useFrame(() => {
+    analyzer.getByteFrequencyData(audioData);
+    setAudioData(new Uint8Array(audioData));
+  });
   const { nodes } = useGLTF('/computers_1-transformed.glb')
   useMemo(() => {
     nodes.Sphere.material = new THREE.MeshBasicMaterial()
     nodes.Sphere.material.toneMapped = false
   }, [])
-  useFrame((state) => {
-    ref.current.children.forEach((instance) => {
-      const rand = Math.abs(2 + instance.position.x)
-      const t = Math.round((1 + Math.sin(rand * 10000 + state.clock.elapsedTime * rand)) / 2)
-      instance.color.setRGB(0, t * 1.1, t)
-    })
-  })
+  useFrame(() => {
+    ref.current.children.forEach((instance, index) => {
+      const frequencyValue = audioData[index % audioData.length] / 255;
+      instance.color.setRGB(0, frequencyValue * 1.1, frequencyValue);
+    });
+  });
   return (
     <group ref={ref}>
       <instances.Sphere position={[-0.41, 1.1, -2.21]} scale={0.005} color={[1, 2, 1]} />
