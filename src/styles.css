@@ -131,11 +131,21 @@ input:focus {
 	color: #fff;
 	text-align: center;
 	z-index: -1;
+	background: url("/public/goli-masks.jpeg") no-repeat center center fixed;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
   }
   .hero-content h2 {
-	font-size: 3rem;
+	font-size: 7rem;
 	font-family: "Abril Fatface", cursive;
 	font-weight: lighter;
+	font-weight: 900;
+	letter-spacing: -6px;
+	font-style: italic;
+	line-height: 10rem;
+	font-family: 'Nunito Sans', sans-serif;
   }
   .hero-content p {
 	font-size: 0.9rem;

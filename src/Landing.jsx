@@ -3,9 +3,81 @@ import {gsap} from "gsap"
 
 
 const Loading = () => {
+  const mainRef = useRef();
+  const lightCyanSlider = useRef();
+
+  
+
+  useEffect(() => {
+    const ctx = gsap.context((self) => {
+      const tl = gsap.timeline({ defaults: { ease: "power1.out" } });
+
+      tl.to(".lightCyan-slider", {
+        x: "-10%",
+        duration: 1,
+      });
+      
+      tl.to(
+        ".persianGreen-slider",
+        {
+          x: "-20%",
+          duration: 1.5,
+        },
+        "-=1"
+      );
+      
+      tl.to(
+        ".white-slider",
+        {
+          x: "-30%",
+          duration: 1.5,
+        },
+        "-=1"
+      );
+      
+      tl.to(".hide", {
+        x: "0%",
+        duration: 2,
+        opacity: 1,
+      });
+      
+      tl.to(".preloader", {
+        x: "200%",
+        duration: 3,
+      });
+      
+      tl.fromTo(
+        "nav",
+        {
+          opacity: 0,
+        },
+        {
+          opacity: 1,
+          duration: 1,
+        },
+        "-=2"
+      );
+      
+      tl.fromTo(
+        ".hero-content",
+        {
+          opacity: 0,
+          y: -20,
+        },
+        {
+          opacity: 1,
+          duration: 1,
+          y: 0,
+        },
+        "-=1.5"
+      );
+      
+    }, mainRef);
+    return () => ctx.revert();
+  }, []);
 
     return (
-        <>
+        <div className="" ref={mainRef}>
   {/* Intro */}
   <div className="preloader">
     <div className="prl-logo">
@@ -43,17 +115,17 @@ const Loading = () => {
     </svg>
     </nav>
     <div className="hero-content">
-      <h2>Lets go on an adventure.</h2>
+      <h2>Be the one we need</h2>
       <p>
         Lorem ipsum dolor sit amet consectetur adipisicing elit. Dolorem culpa
         vero quae perferendis molestiae exercitationem nemo atque veritatis
         ratione rem dolore quibusdam quia, a totam quidem nostrum iusto!
         Reiciendis, rem.
       </p>
-      <button>Explore</button>
+      <button>Fullscreen</button>
     </div>
   </section>
-</>
+</div>
 
     )
 }
